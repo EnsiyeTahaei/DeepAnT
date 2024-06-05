@@ -1,0 +1,18 @@
+defaults:
+  - dataset: nab
+
+common:
+  seed: 200
+  device: cpu
+
+dataset:
+  nab:
+    dataset_name: NAB
+    max_initial_steps: 100
+    max_steps: 2000
+    batch_size: 16
+    patience: 150
+    lr: 1e-3
+    window_size: 10
+    hidden_size: 256
+    run_dir: ./experiment/nab
