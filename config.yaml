@@ -1,5 +1,7 @@
+# config.yaml
+
 defaults:
-  - dataset: nab
+  - dataset: air_quality
 
 common:
   seed: 200

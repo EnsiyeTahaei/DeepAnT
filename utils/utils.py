@@ -1,5 +1,9 @@
+"""
+Utilities for Configuration and Environment Setup
+
+"""
+
 import argparse
-import yaml
 import logging
 import os
 import random
@@ -22,7 +26,12 @@ def load_config(config_file: str) -> DictConfig:
     """
     config = OmegaConf.load(config_file)
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset_name", type=str, default=config.defaults[0].dataset, help="Name of the dataset")
+    parser.add_argument(
+        "--dataset_name", 
+        type=str, 
+        default=config.defaults[0].dataset, 
+        help="Name of the dataset to use (must be defined in the YAML config)"
+    )
     args = parser.parse_args()
 
     dataset_name = args.dataset_name
@@ -34,7 +43,10 @@ def load_config(config_file: str) -> DictConfig:
 
 def prepare_config(cfg: DictConfig) -> DictConfig:
     """
-    Prepare the configuration.
+    Prepare the configuration by:
+      1. Ensuring the required directory exists.
+      2. Setting the random seed.
+      3. Detecting the compute device.
 
     Args:
         cfg (DictConfig): Configuration dictionary.
@@ -58,10 +70,7 @@ def prepare_config(cfg: DictConfig) -> DictConfig:
 
 def check_dir(dir_name: str) -> None:
     """
-    Check if a directory exists, and if not, create it.
-
-    Args:
-        dir_name (str): The directory path to check or create.
+    Check if a directory exists; creates it if missing.
     """
     os.makedirs(dir_name, exist_ok=True)
     logger.info(f"Directory verified: {dir_name}")
@@ -69,9 +78,6 @@ def check_dir(dir_name: str) -> None:
 def check_seed(seed: int) -> None:
     """
     Set the random seed for reproducibility.
-
-    Args:
-        seed (int): The random seed value.
     """
     random.seed(seed)
     torch.manual_seed(seed)
@@ -79,10 +85,7 @@ def check_seed(seed: int) -> None:
 
 def check_device() -> str:
     """
-    Check if CUDA is available and return the appropriate device.
-
-    Returns:
-        str: The device to use ('cuda' or 'cpu').
+    Detects CUDA availability; returns 'cuda' if available, else 'cpu'.
     """
     device = "cuda" if torch.cuda.is_available() else "cpu"
     logger.info(f"Device set to: {device}")
