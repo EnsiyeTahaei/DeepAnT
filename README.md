@@ -1,6 +1,6 @@
 # DeepAnT: A Deep Learning Approach for Unsupervised Anomaly Detection in Time Series
 
-This repository contains an implementation of the paper "DeepAnT: A Deep Learning Approach for Unsupervised Anomaly Detection in Time Series." The original paper can be found [here](https://ieeexplore.ieee.org/document/8581424).
+This repository contains an implementation of the paper **"DeepAnT: A Deep Learning Approach for Unsupervised Anomaly Detection in Time Series."** The original paper can be found [here](https://ieeexplore.ieee.org/document/8581424).
 
 ## About the Paper
 
@@ -16,34 +16,58 @@ The model consists of a sequence of convolutional layers followed by fully conne
 
 This implementation follows the architecture and methodology described in the paper using PyTorch and PyTorch Lightning.
 
-- **Sliding Window**: Preprocesses the time series data using a sliding window approach.
-- **Forecasting-Based Model**: Predicts the next value(s) in the sequence for anomaly detection.
+- **Sliding Window**: Preprocesses the time series data using a sliding window approach, converting raw sequences into overlapping windows (input) and the subsequent step (target).
+- **Forecasting-Based Model**: Predicts the next value in the sequence. Anomalies are inferred by large deviations of the predicted value from the actual value.
 - **Training and Validation**: 
     - Initial training without considering the validation loss.
     - After the initial training, the best model is selected based on the validation loss, using early stopping to prevent overfitting.
-- **Dynamic Threshold Calculation**: Threshold for anomaly detection procedure is dynamically calculated based on the anomaly scores' statistics.
+- **Dynamic Threshold Calculation**: Thresholds are computed per feature dimension based on the anomaly score distribution (mean ± N standard deviations).
+
 - **Visualization**: Provides visualizations for predicted sequences as well as detected anomalies.
+
+## Multivariate Support
+
+This implementation now supports both **univariate** and **multivariate time series** datasets. When `feature_dim > 1`, it automatically:
+- Calculates **per-feature** thresholds.  
+- Identifies anomalies in each feature separately.  
+- Creates subplots for each feature to show anomalies per feature dimension.
 
 ## Results
 
-The model was trained and validated on the 1D NAB dataset. Below are key results from the training run:
+### Univariate NAB Dataset
 
-### Training and Validation
+Below is an example run on the **NAB** (univariate) dataset:
 
-- **Final Training Loss**: 0.0024
-- **Final Validation Loss**: 0.0032
+- **Final Training Loss**: `0.0022`  
+- **Final Validation Loss**: `0.007`  
+- **Dynamic Threshold**: `0.031`  
+- **Detected Anomalies**: `[54, 55, 84, 134, 135, 139, 142, 144]`
 
-### Anomaly Detection
+<p float="left"> <img src="images/nab/predictions.png" alt="Predicted Future Values" width="49%"> <img src="images/nab/anomalies.png" alt="Detected Anomalies" width="49%"> </p>
 
-- **Dynamic Threshold**: 0.0276
-- **Detected Anomalies**: Anomalies detected at indices [54, 55, 84, 132, 134, 135, 139, 141, 142, 144]
 
-### Visualizations
+### Multivariate Air Quality Dataset
 
-The results of the model's predictions and anomaly detection are visualized as follows:
 
-![Predicted Future Values](images/nab/predictions.png)
-![Detected Anomalies](images/nab/anomalies.png)
+The model also was tested on the **Air Quality** dataset from the UCI Repository:
+
+- **Number of Features**: `15` (Date, Time, CO, PT08.S1, PT08.S2, etc.)  
+- **Window Size**: `24` (one day of hourly data)  
+- **Final Training Loss**: `0.043`
+- **Final Validation Loss**: `0.066`
+- **Per-Feature Thresholds**: `[0.191, 0.003, 0.175, ...]`  
+- **Detected Anomalies** (per feature):
+  ```
+  {
+    "Feature_1": [16, 17, 54, 55, 56, 147, ...],
+    "Feature_2": [427, 595, 643, 667, 673, ...],
+    ...
+  }
+  ```
+
+  An example visualization of one of its features:
+
+<p float="left"> <img src="images/air_quality/predictions.png" alt="Predicted Future Values" width="49%"> <img src="images/air_quality/anomalies.png" alt="Detected Anomalies" width="49%"> </p>
 
 ## Usage
 
@@ -58,12 +82,17 @@ The results of the model's predictions and anomaly detection are visualized as f
     pip install -r requirements.txt
     ```
 
-3. **Run the main script**:
+3. **Configure Dataset**:
+    - Edit `config.yaml` to set `dataset_name`, `window_size`, and other hyperparameters. Currently, two datasets are configured:
+        - NAB (for univariate)
+        - Air Quality (for multivariate)
+
+4. **Run the main script**:
     ```bash
     python main.py --dataset_name <dataset_name>
     ```
 
-Note: dataset_name is optional. If not provided, it defaults to "NAB".
+Note: `dataset_name` is optional. If not provided, it defaults to "Air Quality" (as it is specified in `config.yaml`).
 
 ## License
 
@@ -84,3 +113,7 @@ If you use this code for your research, please cite the original paper:
   keywords={Anomaly detection;Time series analysis;Clustering algorithms;Data models;Benchmark testing;Heuristic algorithms;Anomaly detection;artificial intelligence;convolutional neural network;deep neural networks;recurrent neural networks;time series analysis},
   doi={10.1109/ACCESS.2018.2886457}
 }
+
+## Questions or Contributions
+
+Feel free to open an issue if you want to contribute further improvements.

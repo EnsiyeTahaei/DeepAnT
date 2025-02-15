@@ -1,4 +1,10 @@
+"""
+DeepAnt Model Implementation
+
+"""
+
 import logging
+import torch
 import torch.nn as nn
 
 # Set up logging
@@ -6,14 +12,24 @@ logger = logging.getLogger(__name__)
 
 
 class DeepAntPredictor(nn.Module):
-    def __init__(self, feature_dim, window_size, hidden_size=256):
+    def __init__(self, feature_dim: int, window_size: int, hidden_size: int = 256) -> None:
         """
         DeepAnt predictor model.
 
+        This class implements a CNN for time-series prediction. 
+        The model is designed to process an input of shape:
+        
+            (batch_size, feature_dim, window_size)
+
+        and produce an output of shape:
+        
+            (batch_size, feature_dim)
+
         Args:
             feature_dim (int): Number of channels in the input data.
-            window_size (int): Size of the sliding window.
-            hidden_size (int): Number of hidden units in the fc layer (Defaults to 256).
+            window_size (int): Size of the sliding window (time steps).
+            hidden_size (int, optional)): Number of hidden units in the fully connected layer 
+                                          (Defaults to 256).
         """
         super(DeepAntPredictor, self).__init__()
 
@@ -27,20 +43,20 @@ class DeepAntPredictor(nn.Module):
             nn.Flatten(),
             nn.Linear(in_features=(window_size - 2) // 4 * 128, out_features=hidden_size),
             nn.ReLU(inplace=True),
-            nn.Dropout(p=0.25),
+            nn.Dropout(p=0.4),
             nn.Linear(in_features=hidden_size, out_features=feature_dim),
         )
 
         logger.info("DeepAntPredictor model initialized.")
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Forward pass of the DeepAnt model.
 
         Args:
-            x (torch.Tensor): Input tensor.
+            x (torch.Tensor): Input tensor of shape (batch_size, feature_dim, window_size).
 
         Returns:
-            torch.Tensor: Output tensor after forward pass.
+            torch.Tensor: Output tensor of shape (batch_size, feature_dim).
         """
-        return self.model(x).squeeze(1)
+        return self.model(x)

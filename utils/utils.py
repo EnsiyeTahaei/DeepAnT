@@ -1,5 +1,9 @@
+"""
+Utilities for Configuration and Environment Setup
+
+"""
+
 import argparse
-import yaml
 import logging
 import os
 import random
@@ -20,26 +24,29 @@ def load_config(config_file: str) -> DictConfig:
     Returns:
         DictConfig: The combined configuration dictionary.
     """
+    config = OmegaConf.load(config_file)
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset_name", type=str, default="nab", help="Name of the dataset")
+    parser.add_argument(
+        "--dataset_name", 
+        type=str, 
+        default=config.defaults[0].dataset, 
+        help="Name of the dataset to use (must be defined in the YAML config)"
+    )
     args = parser.parse_args()
 
-    with open(config_file, 'r') as file:
-        config = yaml.safe_load(file)
-
-    # Select the appropriate dataset configuration
-    if args.dataset_name in config['dataset']:
-        dataset_cfg = config['dataset'][args.dataset_name]
-    else:
-        raise ValueError(f"Dataset {args.dataset_name} not found in configuration file.")
+    dataset_name = args.dataset_name
+    if dataset_name not in config.dataset:
+        raise ValueError(f"Dataset '{dataset_name}' not found in configuration file.")
     
-    common_cfg = config['common']
-    combined_cfg = {**common_cfg, **dataset_cfg}
-    return prepare_config(OmegaConf.create(combined_cfg))
+    cfg = OmegaConf.merge(config.common, config.dataset[dataset_name])
+    return prepare_config(cfg)
 
 def prepare_config(cfg: DictConfig) -> DictConfig:
     """
-    Prepare the configuration.
+    Prepare the configuration by:
+      1. Ensuring the required directory exists.
+      2. Setting the random seed.
+      3. Detecting the compute device.
 
     Args:
         cfg (DictConfig): Configuration dictionary.
@@ -63,21 +70,14 @@ def prepare_config(cfg: DictConfig) -> DictConfig:
 
 def check_dir(dir_name: str) -> None:
     """
-    Check if a directory exists, and if not, create it.
-
-    Args:
-        dir_name (str): The directory path to check or create.
+    Check if a directory exists; creates it if missing.
     """
-    if not os.path.exists(dir_name):
-        os.makedirs(dir_name)
-    logger.info(f"Directory checked/created: {dir_name}")
+    os.makedirs(dir_name, exist_ok=True)
+    logger.info(f"Directory verified: {dir_name}")
 
 def check_seed(seed: int) -> None:
     """
     Set the random seed for reproducibility.
-
-    Args:
-        seed (int): The random seed value.
     """
     random.seed(seed)
     torch.manual_seed(seed)
@@ -85,10 +85,7 @@ def check_seed(seed: int) -> None:
 
 def check_device() -> str:
     """
-    Check if CUDA is available and return the appropriate device.
-
-    Returns:
-        str: The device to use ('cuda' or 'cpu').
+    Detects CUDA availability; returns 'cuda' if available, else 'cpu'.
     """
     device = "cuda" if torch.cuda.is_available() else "cpu"
     logger.info(f"Device set to: {device}")
