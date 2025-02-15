@@ -26,11 +26,10 @@ class DataModule(torch.utils.data.Dataset):
         return len(self.data_x)
 
     def __getitem__(self, idx):
-        dataset = (
+        return (
             torch.tensor(self.data_x[idx], device=self.device, dtype=torch.float32).transpose(0, 1),
-            torch.tensor(self.data_y[idx], device=self.device, dtype=torch.float32),
+            torch.tensor(self.data_y[idx], device=self.device, dtype=torch.float32).squeeze(0),
         )
-        return dataset
 
 def load_data(dataset_name, window_size, device, val_rate=0.1, test_rate=0.1):
     """
@@ -49,12 +48,28 @@ def load_data(dataset_name, window_size, device, val_rate=0.1, test_rate=0.1):
     logger.info(f"Loading dataset: {dataset_name}")
     path = os.path.join("./data", dataset_name)
 
-    data = pd.read_csv(os.path.join(path, "TravelTime_451.csv"), index_col="timestamp", parse_dates=["timestamp"])
-    logger.info(f"Dataset shape: {data.shape}")
+    if dataset_name == "NAB":
+        file_name = "TravelTime_451.csv"
+        data = pd.read_csv(os.path.join(path, file_name), index_col="timestamp", parse_dates=["timestamp"])
+
+    elif dataset_name == "AirQuality":
+        file_name = "AirQualityUCI.csv"
+        data = pd.read_csv(os.path.join(path, file_name), sep=";", decimal=".", na_values=-200)
+        data["timestamp"] = pd.to_datetime(data["Date"] + " " + data["Time"], format="%d/%m/%Y %H.%M.%S")
+        data.drop(columns=["Date", "Time"], inplace=True)
+        data.set_index("timestamp", inplace=True)
+        data.dropna(axis=1, how="all", inplace=True)
+        data.ffill(inplace=True)
+        data.dropna(axis=0, how="any", inplace=True)
+        data = data.select_dtypes(include=[np.number])
+    else:
+        raise ValueError(f"Unknown dataset name: {dataset_name}")
+
+    logger.info(f"Dataset shape after loading: {data.shape}")
+
     sc = MinMaxScaler()
-    data_scaled = sc.fit_transform(data.value.to_numpy().reshape(-1, 1))
+    data_scaled = sc.fit_transform(data)
     data_x, data_y = split_data(data_scaled, window_size)
-    data_y = np.squeeze(data_y, axis=(1, 2))
 
     train_slice = slice(None, int((1 - val_rate - test_rate) * len(data_x)))
     val_slice = slice(int((1 - val_rate - test_rate) * len(data_x)), int((1 - test_rate) * len(data_x)))
@@ -81,14 +96,13 @@ def split_data(data, window_size):
     Returns:
         tuple: Arrays of input and target data.
     """
-    data_x = [data[i - window_size : i] for i in range(window_size, data.shape[0], 1)]
-    data_y = []
-    for i in range(window_size, data.shape[0], 1):
+    data_x, data_y = [], []
+    for i in range(window_size, data.shape[0]):
         if (i + 1) >= data.shape[0]:
-            data_x = data_x[:-1]
-        else:
-            data_y.append(data[i : i + 1])
-    data_x = np.array(data_x)
-    data_y = np.array(data_y)
+            break
+        window = data[i - window_size:i]
+        target = data[i:i + 1] 
+        data_x.append(window)
+        data_y.append(target)
 
-    return data_x, data_y
+    return np.array(data_x), np.array(data_y)

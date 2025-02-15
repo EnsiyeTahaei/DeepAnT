@@ -27,7 +27,7 @@ class DeepAntPredictor(nn.Module):
             nn.Flatten(),
             nn.Linear(in_features=(window_size - 2) // 4 * 128, out_features=hidden_size),
             nn.ReLU(inplace=True),
-            nn.Dropout(p=0.25),
+            nn.Dropout(p=0.4),
             nn.Linear(in_features=hidden_size, out_features=feature_dim),
         )
 
@@ -43,4 +43,4 @@ class DeepAntPredictor(nn.Module):
         Returns:
             torch.Tensor: Output tensor after forward pass.
         """
-        return self.model(x).squeeze(1)
+        return self.model(x)

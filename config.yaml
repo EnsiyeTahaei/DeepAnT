@@ -3,16 +3,21 @@ defaults:
 
 common:
   seed: 200
-  device: cpu
+  max_initial_steps: 50
+  max_steps: 500
+  batch_size: 16
+  patience: 150
+  lr: 1e-3
+  hidden_size: 256
+  run_dir: ./experiment
 
 dataset:
   nab:
     dataset_name: NAB
-    max_initial_steps: 100
-    max_steps: 2000
-    batch_size: 16
-    patience: 150
-    lr: 1e-3
     window_size: 10
-    hidden_size: 256
-    run_dir: ./experiment/nab
+    run_dir: ${common.run_dir}/nab
+
+  air_quality:
+    dataset_name: AirQuality
+    window_size: 24
+    run_dir: ${common.run_dir}/airQuality
